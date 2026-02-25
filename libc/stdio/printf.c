@@ -32,7 +32,7 @@ int printf(const char* restrict format, ...) {
 			if (!print(format, amount)) return -1;
 			format += amount;
 			written += amount;
-			continue
+			continue;
 		}
 
 		const char* format_begun_at = format++;
@@ -44,11 +44,11 @@ int printf(const char* restrict format, ...) {
 				// TODO: set errno to EOVERFLOW
 				return -1;
 			}
-			if (!printf(&c, sizeof(c)) return -1;
+			if (!printf(&c, sizeof(c))) return -1;
 			written++;
 		} else if (*format == 's') {
 			format++;
-			const char* string = va_arg(parameters, const char*);
+			const char* str = va_arg(parameters, const char*);
 			size_t len = strlen(str);
 			if (maxrem < len) {
 				// TODO: set errno to EOVERFLOW
@@ -63,7 +63,7 @@ int printf(const char* restrict format, ...) {
 				// TODO: set errno to EOVERFLOW
 				return -1;
 			}
-			if (!printf(format, len)) return -1
+			if (!printf(format, len)) return -1;
 			written += len;
 			format += len;
 		}

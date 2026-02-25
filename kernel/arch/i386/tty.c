@@ -40,27 +40,21 @@ void terminal_putentryat(unsigned char c, uint8_t color, size_t x, size_t y) {
 }
 
 void terminal_scroll(int line) {
-	int loop;
-	char c;
+	uint16_t* vga = (uint16_t*) 0xB8000;
 
-	// VGA_WIDTH * 2 -> total bytes in one horizontal row
-	//   - cuz each char is 2 bytes (color and char)
-	// eg. line = 2 => line*(VGA_WIDTH*2) = 4*VGA_WIDTH = 320
-	//   - so the 2nd line (0-based) starts from index 320 on a linear space
-	//   - that +0xB8000 just offsets this into the vga mem space
-
-	for (loop = line * (VGA_WIDTH * 2) + 0xB8000; loop < VGA_WIDTH * 2; loop++) {
-		c = *loop;
-		*(loop - (VGA_WIDTH * 2)) = c;
+	for (int i = 0; i < (VGA_HEIGHT - 1) * VGA_WIDTH; i++) {
+		vga[i] = vga[i + VGA_WIDTH];
 	}
 }
 
 void terminal_delete_last_line() {
-	int x, *ptr;
+	int x;
+	uint16_t* ptr;
 
-	for (x = 0; x < VGA_HEIGHT * 2; x++) {
-		ptr = 0xB8000 + (VGA_WIDTH * 2) * (VGA_HEIGHT - 1) + x;
-		*ptr = 0;
+	ptr = (uint16_t*)0xB8000 + VGA_WIDTH * (VGA_HEIGHT - 1);
+
+	for (int x = 0; x < VGA_WIDTH; x++) {
+	    ptr[x] = 0;
 	}
 }
 

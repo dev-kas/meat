@@ -76,7 +76,7 @@ install-headers:
 	mkdir -p $(DESTDIR)$(INCLUDEDIR)
 	cp -R --preserve=timestamps include/. $(DESTDIR)$(INCLUDEDIR)/.
 
-install-kernel: meat.kernle
+install-kernel: meat.kernel
 	mkdir -p $(DESTDIR)$(BOOTDIR)
 	cp meat.kernel $(DESTDIR)$(BOOTDIR)
 
