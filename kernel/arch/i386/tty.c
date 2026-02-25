@@ -39,27 +39,28 @@ void terminal_putentryat(unsigned char c, uint8_t color, size_t x, size_t y) {
 	terminal_buffer[index] = vga_entry(c, color);
 }
 
-void terminal_scroll(int line) {
-	uint16_t* vga = (uint16_t*) 0xB8000;
+void terminal_scroll(size_t line) {
+	if (line == 0 || line >= VGA_HEIGHT) return;
 
-	for (int i = 0; i < (VGA_HEIGHT - 1) * VGA_WIDTH; i++) {
-		vga[i] = vga[i + VGA_WIDTH];
+	for (size_t row = line; row < VGA_HEIGHT; row++) {
+		for (size_t col = 0; col < VGA_WIDTH; col++) {
+			VGA_MEMORY[(row - 1) * VGA_WIDTH + col] = VGA_MEMORY[row * VGA_WIDTH + col];
+		}
 	}
 }
 
 void terminal_delete_last_line() {
-	int x;
 	uint16_t* ptr;
 
 	ptr = (uint16_t*)0xB8000 + VGA_WIDTH * (VGA_HEIGHT - 1);
 
-	for (int x = 0; x < VGA_WIDTH; x++) {
+	for (size_t x = 0; x < VGA_WIDTH; x++) {
 	    ptr[x] = 0;
 	}
 }
 
 void terminal_putchar(char c) {
-	int line;
+	size_t line;
 	unsigned char uc = c;
 
 	terminal_putentryat(uc, terminal_color, terminal_column, terminal_row);
