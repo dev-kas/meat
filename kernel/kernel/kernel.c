@@ -7,6 +7,7 @@
 #include <kernel/pic.h>
 #include <kernel/multiboot.h>
 #include <kernel/pmm.h>
+#include <kernel/vmm.h>
 
 extern uint32_t _kernel_end;
 
@@ -49,15 +50,7 @@ void kernel_main(uint32_t magic, multiboot_info_t* mboot_ptr) {
 
 	printf("PMM initialized.\n");
 
-
-	uint32_t a = pmm_alloc_block();
-	printf("Allocated page at: 0x%x\n", a);
-	uint32_t b = pmm_alloc_block();
-	printf("Allocated page at: 0x%x\n", b);
-
-	pmm_free_block(a);
-	uint32_t c = pmm_alloc_block();
-	printf("Allocated page at: 0x%x (must be same as first one)\n", c);
+	vmm_initialize();
 
 	asm volatile("sti");
 

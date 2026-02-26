@@ -33,3 +33,24 @@ _start:
 1:	hlt
 	jmp 1b
 .size _start, . - _start
+
+.global load_page_directory
+load_page_directory:
+	push %ebp
+	mov %esp, %ebp
+	mov 8(%ebp), %eax
+	mov %eax, %cr3 # cr3 holds the address of page directory
+	mov %ebp, %esp
+	pop %ebp
+	ret
+
+.global enable_paging
+enable_paging:
+	push %ebp
+	mov %esp, %ebp
+	mov %cr0, %eax
+	or $0x80000000, %eax # set the 31st bit (PG bit) to 1
+	mov %eax, %cr0
+	mov %ebp, %esp
+	pop %ebp
+	ret
