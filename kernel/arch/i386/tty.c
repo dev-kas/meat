@@ -71,8 +71,19 @@ void terminal_putchar(char c) {
 			terminal_delete_last_line();
 			terminal_row = VGA_HEIGHT - 1;
 		}
+		return;
 	}
 
+	if (c == '\b') {
+		if (terminal_column > 0) {
+		terminal_column--;
+		} else if (terminal_row > 0) {
+		terminal_row--;
+		terminal_column = VGA_WIDTH - 1;
+		}
+		// if at (0,0) then do nothing
+		return;
+	}
 	terminal_putentryat(uc, terminal_color, terminal_column, terminal_row);
 
 	if (++terminal_column == VGA_WIDTH) {

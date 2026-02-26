@@ -22,6 +22,10 @@ stack_top:
 _start:
 	movl $stack_top, %esp
 
+	# pass multiboot info to kernel_main
+	pushl %ebx # ptr to the multiboot information structure
+	pushl %eax # magic number (0x2BADB002)
+
 	call _init
 	call kernel_main
 

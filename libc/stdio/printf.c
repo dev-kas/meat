@@ -56,6 +56,41 @@ int printf(const char* restrict format, ...) {
 			}
 			if (!print(str, len)) return -1;
 			written += len;
+		} else if (*format == 'd' || *format == 'x') {
+			bool is_hex = (*format == 'x');
+			format++;
+
+			int num = va_arg(parameters, int);
+			char buffer[32];
+			int i = 0;
+
+			if (num == 0) {
+				buffer[i++] = '0';
+			} else {
+				unsigned int n;
+
+				// negative numbers
+				if (!is_hex && num < 0) {
+					if (!print("-", 1)) return -1;
+					written++;
+					n = (unsigned int)(-num);
+				} else {
+					n = (unsigned int)num;
+				}
+
+				// extract digits
+				while (n > 0) {
+					int rem = n % (is_hex ? 16 : 10);
+					buffer[i++] = (rem < 10) ? (rem + '0') : (rem - 10 + 'a');
+					n /= (is_hex ? 16 : 10);
+				}
+			}
+
+			while (i > 0) {
+				i--;
+				if (!print(&buffer[i], 1)) return -1;
+				written++;
+			}
 		} else {
 			format = format_begun_at;
 			size_t len = strlen(format);

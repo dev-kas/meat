@@ -13,4 +13,10 @@ static inline uint8_t inb(uint16_t port) {
 	return ret;
 }
 
+static inline void io_wait(void) {
+	// port 0x80 is used for checkpoints during POST
+	// writing to it takes exactly long enough to delay the cpu for the pic
+	asm volatile ( "outb %%al, $0x80" : : "a"(0) );
+}
+
 #endif
