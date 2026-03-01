@@ -29,6 +29,15 @@ void isr0_handler(void) {
 	asm volatile ("cli; hlt");
 }
 
+// GPF (general protection fault)
+extern void isr13(void);
+void isr13_handler(void) {
+	printf("\n[SECURITY] General protection fault intercepted.\n");
+	printf("[SECURITY] A user process tried to do smth illegal.\n");
+
+	while(1) { asm volatile("cli; hlt"); }
+}
+
 // IRQ0 - timer
 extern void isr32(void);
 
@@ -94,6 +103,7 @@ void idt_initialize(void) {
 	}
 
 	idt_set_gate( 0, (uint32_t)isr0,  0x08, 0x8E); // divide by zero
+	idt_set_gate(13, (uint32_t)isr13, 0x08, 0x8E); // GPF (general protection fault)
 	idt_set_gate(32, (uint32_t)isr32, 0x08, 0x8E); // IRQ0 - timer
 	idt_set_gate(33, (uint32_t)isr33, 0x08, 0x8E); // IRQ1 - keyboard
 

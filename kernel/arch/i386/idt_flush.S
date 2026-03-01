@@ -14,6 +14,15 @@ isr0:
 	sti # enable interrupts
 	iret # return from this interrupt
 
+.global isr13
+.extern isr13_handler
+isr13:
+	cli
+	pusha
+	call isr13_handler
+	popa
+	iret
+
 .global isr32
 .extern irq0_handler # c scheduler
 isr32:

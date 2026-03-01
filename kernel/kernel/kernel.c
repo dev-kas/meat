@@ -15,118 +15,7 @@
 #include <string.h>
 
 extern uint32_t _kernel_end;
-
-void task_a() {
-	while (1) {
-		printf("A");
-		for (int i = 0; i < 1000000; i++);
-	}
-}
-
-void task_b() {
-	while (1) {
-		printf("B");
-		for (int i = 0; i < 1000000; i++);
-	}
-}
-
-void task_c() {
-	while (1) {
-		printf("C");
-		for (int i = 0; i < 1000000; i++);
-	}
-}
-
-void task_d() {
-	while (1) {
-		printf("D");
-		for (int i = 0; i < 1000000; i++);
-	}
-}
-
-void task_e() {
-	while (1) {
-		printf("E");
-		for (int i = 0; i < 1000000; i++);
-	}
-}
-
-void task_f() {
-	while (1) {
-		printf("F");
-		for (int i = 0; i < 1000000; i++);
-	}
-}
-
-void task_g() {
-	while (1) {
-		printf("G");
-		for (int i = 0; i < 1000000; i++);
-	}
-}
-
-void task_h() {
-	while (1) {
-		printf("H");
-		for (int i = 0; i < 1000000; i++);
-	}
-}
-
-void task_i() {
-	while (1) {
-		printf("I");
-		for (int i = 0; i < 1000000; i++);
-	}
-}
-
-void task_j() {
-	while (1) {
-		printf("J");
-		for (int i = 0; i < 1000000; i++);
-	}
-}
-
-void task_k() {
-	while (1) {
-		printf("K");
-		for (int i = 0; i < 1000000; i++);
-	}
-}
-
-void task_l() {
-	while (1) {
-		printf("L");
-		for (int i = 0; i < 1000000; i++);
-	}
-}
-
-void task_m() {
-	while (1) {
-		printf("M");
-		for (int i = 0; i < 1000000; i++);
-	}
-}
-
-void task_n() {
-	while (1) {
-		printf("N");
-		for (int i = 0; i < 1000000; i++);
-	}
-}
-
-void task_o() {
-	while (1) {
-		printf("O");
-		for (int i = 0; i < 1000000; i++);
-	}
-}
-
-void task_p() {
-	while (1) {
-		printf("P");
-		for (int i = 0; i < 1000000; i++);
-	}
-}
+extern void switch_to_user_mode();
 
 void kernel_main(uint32_t magic, multiboot_info_t* mboot_ptr) {
 	gdt_initialize();
@@ -196,31 +85,20 @@ void kernel_main(uint32_t magic, multiboot_info_t* mboot_ptr) {
 	kheap_initialize((void*)heap_start, 256 * 4096);
 	multitasking_initialize();
 
-	create_kernel_thread(task_a);
-	create_kernel_thread(task_b);
-	create_kernel_thread(task_c);
-	create_kernel_thread(task_d);
-	create_kernel_thread(task_e);
-	create_kernel_thread(task_f);
-	create_kernel_thread(task_g);
-	create_kernel_thread(task_h);
-	create_kernel_thread(task_i);
-	create_kernel_thread(task_j);
-	create_kernel_thread(task_k);
-	create_kernel_thread(task_l);
-	create_kernel_thread(task_m);
-	create_kernel_thread(task_n);
-	create_kernel_thread(task_o);
-	create_kernel_thread(task_p);
-
 	asm volatile("sti");
 
-	printf("Hello, Meat world!\n");
+	printf("Kernel: Entering User Mode...\n");
+	switch_to_user_mode();
 
-	char* str = (char*)kmalloc(15);
-	strcpy(str, "kmalloc test");
-	printf("Heap test: %s (at 0x%x)", str, str); // should be 0xD00000XX;
-	kfree(str);
+	// we are now in ring 3
+	printf("User: Hello from Ring 3!\n");
 
-	while (1) { asm volatile("hlt"); };
+	// test: try to disable interrupts (privileged instruction)
+	printf("User: Attempting to run 'cli'...\n");
+
+	asm volatile("cli"); 
+
+	printf("User: If you see this, security failed.\n");
+
+	while (1) {};
 }

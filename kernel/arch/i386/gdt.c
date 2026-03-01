@@ -5,6 +5,7 @@
 
 struct gdt_entry gdt[6];
 struct gdt_ptr gp;
+static uint8_t tss_kernel_stack[4096]; // 4KB stack
 
 extern void gdt_flush(uint32_t);
 
@@ -41,6 +42,6 @@ void gdt_initialize(void) {
 
 	// hand the pointer to the cpu via assembly
 	gdt_flush((uint32_t)&gp);
-	tss_install(5, 0x10, 0);
+	tss_install(5, 0x10, (uint32_t)&tss_kernel_stack[4096]);
 }
 

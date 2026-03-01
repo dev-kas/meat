@@ -20,11 +20,11 @@ void vmm_initialize() {
 
 	// fill the first page table (identity map 0MB to 4MB)
 	for (unsigned int i = 0; i < 1024; i++) {
-		first_page_table[i] = (i * 4096) | 3;
+		first_page_table[i] = (i * 4096) | 7;
 	}
 
 	// put the page table into the directory
-	page_directory[0] = ((unsigned int)first_page_table) | 3;
+	page_directory[0] = ((unsigned int)first_page_table) | 7;
 
 	load_page_directory(page_directory);
 	enable_paging();
