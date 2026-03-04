@@ -3,58 +3,65 @@
 #include <string.h>
 
 #include <kernel/pmm.h>
+#include <kernel/vmm.h>
 
-uint32_t page_directory[1024] __attribute__((aligned(4096)));
-uint32_t first_page_table[1024] __attribute__((aligned(4096)));
+extern uint64_t hhdm_offset;
 
-extern void load_page_directory(uint32_t*);
-extern void enable_paging();
-extern void vmm_flush_tlb_entry(uint32_t addr);
-
-void vmm_initialize() {
-	// clear the directory (mark everything as not present)
-	// bit 1 = read/write, 0 = present. 0x2 means rw but not present
-	for (int i = 0; i < 1024; i++) {
-		page_directory[i] = 0x00000002;
-	}
-
-	// fill the first page table (identity map 0MB to 4MB)
-	for (unsigned int i = 0; i < 1024; i++) {
-		first_page_table[i] = (i * 4096) | 3;
-	}
-
-	// put the page table into the directory
-	page_directory[0] = ((unsigned int)first_page_table) | 7;
-
-	load_page_directory(page_directory);
-	enable_paging();
-
-	printf("VMM: Paging enabled!\n");
+static inline void vmm_flush_tlb_entry(uint64_t addr) {
+    asm volatile("invlpg %0" : : "m"(*(volatile char*)addr) : "memory");
 }
 
-void vmm_map_page(uint32_t phys, uint32_t virt, uint32_t flags) {
-	uint32_t pd_index = virt >> 22;
-	uint32_t pt_index = (virt >> 12) & 0x3FF;
-	
-	// check if page table exists
-	// directory entry format: [ addr 20 bits ] [ flags 12 bits ]
-	// bit 0 is present bit
-	if (!(page_directory[pd_index] & 0x1)) {
-		// page table does not exist
-		uint32_t new_pt_phys = pmm_alloc_block();
+uint64_t* get_active_page_dir() {
+    uint64_t cr3;
+    asm volatile("mov %%cr3, %0" : "=r"(cr3));
+    return (uint64_t*)(cr3 & 0x000FFFFFFFFFF000);
+}
 
-		uint32_t* new_pt_virt = (uint32_t*)new_pt_phys;
-		memset(new_pt_virt, 0, 4096);
+void vmm_initialize() {
+    uint64_t* old_pml4 = (uint64_t*)((uint64_t)get_active_page_dir() + hhdm_offset);
+    uint64_t new_pml4_phys = pmm_alloc_block();
+    uint64_t* new_pml4 = (uint64_t*)(new_pml4_phys + hhdm_offset);
+    for (int i = 0; i < 512; i++) new_pml4[i] = 0;
+    
+    for (int i = 256; i < 512; i++) {
+        new_pml4[i] = old_pml4[i];
+    }
+    
+    asm volatile("mov %0, %%cr3" : : "r"(new_pml4_phys));
+    
+    printf("VMM: Switched to clean 64-bit page table!\n");
+}
 
-		// 0x3 = present (bit 0) | rw (bit 1)
-		page_directory[pd_index] = new_pt_phys | 0x7;
-	}
+void vmm_map_page(uint64_t phys, uint64_t virt, uint64_t flags) {
+    uint64_t* pml4 = (uint64_t*)((uint64_t)get_active_page_dir() + hhdm_offset);
+    
+    uint64_t pml4_idx = (virt >> 39) & 0x1FF;
+    uint64_t pdpt_idx = (virt >> 30) & 0x1FF;
+    uint64_t pd_idx   = (virt >> 21) & 0x1FF;
+    uint64_t pt_idx   = (virt >> 12) & 0x1FF;
 
-	// get page table
-	uint32_t pt_phys = page_directory[pd_index] & 0xFFFFF000;
-	uint32_t* pt_virt = (uint32_t*)pt_phys;
-	pt_virt[pt_index] = (phys & 0xFFFFF000) | (flags & 0xFFF);
+    if (!(pml4[pml4_idx] & 0x1)) {
+        uint64_t new_pdpt = pmm_alloc_block();
+        memset((void*)(new_pdpt + hhdm_offset), 0, 4096);
+        pml4[pml4_idx] = new_pdpt | 0x7;
+    }
 
-	// refresh cache
-	vmm_flush_tlb_entry(virt);
+    uint64_t* pdpt = (uint64_t*)((pml4[pml4_idx] & 0x000FFFFFFFFFF000) + hhdm_offset);
+    if (!(pdpt[pdpt_idx] & 0x1)) {
+        uint64_t new_pd = pmm_alloc_block();
+        memset((void*)(new_pd + hhdm_offset), 0, 4096);
+        pdpt[pdpt_idx] = new_pd | 0x7;
+    }
+
+    uint64_t* pd = (uint64_t*)((pdpt[pdpt_idx] & 0x000FFFFFFFFFF000) + hhdm_offset);
+    if (!(pd[pd_idx] & 0x1)) {
+        uint64_t new_pt = pmm_alloc_block();
+        memset((void*)(new_pt + hhdm_offset), 0, 4096);
+        pd[pd_idx] = new_pt | 0x7;
+    }
+
+    uint64_t* pt = (uint64_t*)((pd[pd_idx] & 0x000FFFFFFFFFF000) + hhdm_offset);
+    pt[pt_idx] = (phys & 0x000FFFFFFFFFF000) | (flags & 0xFFF) | 0x1;
+
+    vmm_flush_tlb_entry(virt);
 }

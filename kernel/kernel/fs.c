@@ -22,7 +22,7 @@ struct tar_header {
 	char prefix[155];
 };
 
-static uint32_t fs_start_addr = 0;
+static uint64_t fs_start_addr = 0;
 
 // helper to convert oct string to int
 unsigned int get_size(const char* in) {
@@ -33,7 +33,7 @@ unsigned int get_size(const char* in) {
 	return size;
 }
 
-void fs_init(uint32_t ramdisk_addr) {
+void fs_init(uint64_t ramdisk_addr) {
 	fs_start_addr = ramdisk_addr;
 	printf("FileSystem: initialized at 0x%x\n", fs_start_addr);
 
@@ -44,8 +44,8 @@ void fs_init(uint32_t ramdisk_addr) {
 		printf("  Found file: %s (%d bytes)\n", header->filename, size);
 
 		// move to next header
-		uint32_t next_offset = 512 + (((size + 511) / 512) * 512);
-		header = (struct tar_header*)((uint32_t)header + next_offset);
+		uint64_t next_offset = 512 + (((size + 511) / 512) * 512);
+		header = (struct tar_header*)((uint64_t)header + next_offset);
 	}
 }
 
@@ -58,7 +58,7 @@ void fs_cat (char* target_filename) {
 		if (strcmp(header->filename, target_filename) == 0) {
 			printf("--- contents of file %s ---\n", target_filename);
 
-			char* content = (char*)((uint32_t)header + 512);
+			char* content = (char*)((uint64_t)header + 512);
 			
 			for (unsigned int i = 0; i < size; i++) {
 				printf("%c", content[i]);
@@ -69,23 +69,23 @@ void fs_cat (char* target_filename) {
 		}
 
 		// move to next header
-		uint32_t next_offset = 512 + (((size + 511) / 512) * 512);
-		header = (struct tar_header*)((uint32_t)header + next_offset);
+		uint64_t next_offset = 512 + (((size + 511) / 512) * 512);
+		header = (struct tar_header*)((uint64_t)header + next_offset);
 	}
 	printf("File not found: %s\n", target_filename);
 }
 
-void* fs_get_file(char* filename, uint32_t* out_size) {
+void* fs_get_file(char* filename, uint64_t* out_size) {
 	struct tar_header* header = (struct tar_header*)fs_start_addr;
 
 	while (header->filename[0] != 0) {
 		unsigned int size = get_size(header->size);
 		if (strcmp(header->filename, filename) == 0) {
 			if (out_size) *out_size = size;
-			return (void*)((uint32_t)header + 512); // ptr to file contents
+			return (void*)((uint64_t)header + 512); // ptr to file contents
 		}
-		uint32_t next_offset = 512 + (((size + 511) / 512) * 512);
-		header = (struct tar_header*)((uint32_t)header + next_offset);
+		uint64_t next_offset = 512 + (((size + 511) / 512) * 512);
+		header = (struct tar_header*)((uint64_t)header + next_offset);
 	}
 	return NULL;
 }

@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 
-void fs_init(uint32_t ramdisk_start);
+void fs_init(uint64_t ramdisk_start);
 void fs_cat(char* filename);
-void* fs_get_file(char* filename, uint32_t* out_size);
+void* fs_get_file(char* filename, uint64_t* out_size);
 
 #endif

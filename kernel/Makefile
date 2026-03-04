@@ -30,13 +30,12 @@ LIBS:=$(LIBS) $(KERNEL_ARCH_LIBS)
 KERNEL_OBJS=\
 $(KERNEL_ARCH_OBJS) \
 kernel/kernel.o \
-
-# kernel/kheap.o \
-# kernel/pmm.o \
-# kernel/fs.o \
-# kernel/process.o \
-# kernel/syscall.o \
-# kernel/kex.o
+kernel/kheap.o \
+kernel/pmm.o \
+kernel/fs.o \
+kernel/process.o \
+kernel/syscall.o \
+kernel/kex.o
 
 OBJS=\
 $(ARCHDIR)/crti.o \

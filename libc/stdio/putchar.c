@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdint.h>
 
 #if defined(__is_libk)
 // #include <kernel/tty.h>
@@ -14,7 +15,7 @@ int putchar(int ic) {
 	asm volatile(
 		"int $0x80"
 		:
-		: "a"(1), "b"(ic), "c"(0), "d"(0)
+		: "a"((uint64_t)1), "b"((uint64_t)ic), "c"(0), "d"(0)
 		: "memory"
 	);
 #endif

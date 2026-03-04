@@ -14,7 +14,7 @@ struct gdt_entry {
 
 struct gdt_ptr {
 	uint16_t limit; // upper 16 bits of all selector limits
-	uint32_t base; // address of first gdt_entry_t struct
+	uint64_t base; // address of first gdt_entry_t struct
 } __attribute__((packed));
 
 void gdt_initialize(void);

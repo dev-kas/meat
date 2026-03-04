@@ -2,12 +2,10 @@
 #include <kernel/kheap.h>
 #include <kernel/pmm.h>
 #include <kernel/vmm.h>
-#include <arch/i386/io.h>
+#include <arch/x86_64/io.h>
 #include <stdio.h>
 
-// current running process
 process_t* current_process = NULL;
-// list of all processes
 process_t* process_list = NULL;
 
 int next_pid = 1;
@@ -15,9 +13,9 @@ int next_pid = 1;
 void multitasking_initialize() {
 	current_process = (process_t*)kmalloc(sizeof(process_t));
 	current_process->pid = 0;
-	current_process->esp = 0; // will be set by the switcher
-	current_process->page_directory = (uint32_t*)page_directory;
-	current_process->next = current_process; // loop back to self
+	current_process->rsp = 0; 
+	current_process->page_directory = get_active_page_dir();
+	current_process->next = current_process; 
 	
 	process_list = current_process;
 	printf("Multithreading: Initialized\n");
@@ -30,41 +28,47 @@ void create_kernel_thread(void (*function)(void)) {
 	new_task->next = process_list->next;
 	process_list->next = new_task;
 
-	// allocate a kernel stack for this thread
-	// stack grows down so we need the end of allocated block
-	uint32_t stack_phys = pmm_alloc_block();
-	// TODO: map this properly with vmm
-	uint32_t* stack_top = (uint32_t*)(stack_phys + 4096);
+	uint64_t stack_phys = pmm_alloc_block();
+	uint64_t* stack_top = (uint64_t*)(stack_phys + 4096);
+	stack_top = (uint64_t*)((uint64_t)stack_top & ~0xF);
 
-	*(--stack_top) = 0x202; // eflagS (interrupts enabled = 1)
-	*(--stack_top) = 0x08; // cs (kernel code segment)
-	*(--stack_top) = (uint32_t)function; // eip
+	*(--stack_top) = 0x10; // SS (kernel data segment)
+	*(--stack_top) = stack_phys + 4096; // RSP (initial stack pointer)
+	*(--stack_top) = 0x202; // RFLAGS (interrupts enabled)
+	*(--stack_top) = 0x08; // CS (kernel code segment)
+	*(--stack_top) = (uint64_t)function; // RIP (instruction pointer)
 
-	*(--stack_top) = 0; // eax
-	*(--stack_top) = 0; // ecx
-	*(--stack_top) = 0; // edx
-	*(--stack_top) = 0; // ebx
-	*(--stack_top) = 0; // esp (ignored by popa)
-	*(--stack_top) = 0; // ebp
-	*(--stack_top) = 0; // esi
-	*(--stack_top) = 0; // edi
+	*(--stack_top) = 0; // r15
+	*(--stack_top) = 0; // r14
+	*(--stack_top) = 0; // r13
+	*(--stack_top) = 0; // r12
+	*(--stack_top) = 0; // r11
+	*(--stack_top) = 0; // r10
+	*(--stack_top) = 0; // r9
+	*(--stack_top) = 0; // r8
+	*(--stack_top) = 0; // rax
+	*(--stack_top) = 0; // rcx
+	*(--stack_top) = 0; // rdx
+	*(--stack_top) = 0; // rbx
+	*(--stack_top) = 0; // rbp
+	*(--stack_top) = 0; // rsi
+	*(--stack_top) = 0; // rdi
 
-	new_task->esp = (uint32_t)stack_top;
+	new_task->rsp = (uint64_t)stack_top;
 
 	printf("Created task %d\n", new_task->pid);
 }
 
 // called by the timer interrupt handler (IRQ0)
-uint32_t schedule(uint32_t current_esp) {
-	if (!current_process) return current_esp;
+uint64_t schedule(uint64_t current_rsp) {
+	if (!current_process) return current_rsp;
 
-	current_process->esp = current_esp; // save esp of the task that was interrupted
-	current_process = current_process->next; // switch to next task
-	return current_process->esp; // return new task's stack pointer
-
+	current_process->rsp = current_rsp; 
+	current_process = current_process->next; 
+	return current_process->rsp; 
 }
 
-uint32_t irq0_handler(uint32_t esp) {
-	outb(0x20, 0x20);
-	return schedule(esp);
+uint64_t irq0_handler(uint64_t rsp) {
+	outb(0x20, 0x20); // acknowledge interrupt to PIC
+	return schedule(rsp);
 }

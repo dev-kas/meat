@@ -2,8 +2,7 @@
 switch_to_user_mode:
 	cli
 
-	# get the entry_point arg from c stack
-	mov 4(%esp), %ebx
+	mov %rdi, %rbx
 
 	# gdt entry 4 is 0x20, so 0x20 | 3 (ring 3) = 0x23
 	mov $0x23, %ax
@@ -12,16 +11,16 @@ switch_to_user_mode:
 	mov %ax, %fs
 	mov %ax, %gs
 
-	# construct iret frame
-	pushl $0x23 # ss (user data)
-	pushl $0x800000 # esp (user stack)
-	pushf # eflags
-
-	popl %eax
-	orl $0x200, %eax
-	pushl %eax
-
-	pushl $0x1B # push cs (user code segment)
-	pushl %ebx # eip
-	iret # jump to user mode
-
+	# construct iretq frame
+	pushq $0x23        # SS (user data)
+	pushq $0x800000    # RSP (user stack)
+	
+	pushfq
+	popq %rax
+	orq $0x200, %rax
+	pushq %rax         # RFLAGS
+	
+	pushq $0x1B        # CS (user code segment: 0x18 | 3 = 0x1B)
+	pushq %rbx         # RIP
+	
+	iretq              # jump to user mode

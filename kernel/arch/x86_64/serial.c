@@ -1,7 +1,7 @@
 #include <stddef.h>
 #include <kernel/serial.h>
 
-#include <arch/i386/io.h>
+#include <arch/x86_64/io.h>
 
 #define PORT 0x3F8
 

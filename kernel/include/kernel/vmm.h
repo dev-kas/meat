@@ -3,9 +3,9 @@
 
 #include <stdint.h>
 
-extern uint32_t page_directory[1024];
+uint64_t* get_active_page_dir();
 
 void vmm_initialize();
-void vmm_map_page(uint32_t phys, uint32_t virt, uint32_t flags);
+void vmm_map_page(uint64_t phys, uint64_t virt, uint64_t flags);
 
 #endif

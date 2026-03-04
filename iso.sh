@@ -5,13 +5,14 @@ mkdir -p isodir
 mkdir -p isodir/boot
 
 cp sysroot/boot/meat.kernel isodir/boot/meat.kernel
-# cp sysroot/ramdisk.tar isodir/boot/ramdisk.tar
+cp sysroot/ramdisk.tar isodir/boot/ramdisk.tar
 
 cat > isodir/limine.cfg << EOF
 TIMEOUT=0
 :MeatOS
 PROTOCOL=limine
 KERNEL_PATH=boot:///boot/meat.kernel
+MODULE_PATH=boot:///boot/ramdisk.tar
 EOF
 
 cp limine/limine-bios.sys limine/limine-bios-cd.bin limine/limine-uefi-cd.bin isodir/

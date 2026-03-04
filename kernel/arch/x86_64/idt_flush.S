@@ -1,75 +1,122 @@
 .global idt_flush
 idt_flush:
-	movl 4(%esp), %eax # get pointer passed from c
-	lidt (%eax) # load the idt
+	lidt (%rdi)
 	ret
+
+.macro pusha64
+	pushq %r15
+	pushq %r14
+	pushq %r13
+	pushq %r12
+	pushq %r11
+	pushq %r10
+	pushq %r9
+	pushq %r8
+	pushq %rax
+	pushq %rcx
+	pushq %rdx
+	pushq %rbx
+	pushq %rbp
+	pushq %rsi
+	pushq %rdi
+.endm
+
+.macro popa64
+	popq %rdi
+	popq %rsi
+	popq %rbp
+	popq %rbx
+	popq %rdx
+	popq %rcx
+	popq %rax
+	popq %r8
+	popq %r9
+	popq %r10
+	popq %r11
+	popq %r12
+	popq %r13
+	popq %r14
+	popq %r15
+.endm
 
 .global isr0
 .extern isr0_handler
 isr0:
-	cli # disable other interrupts so we arent interrupted while crashing
-	pusha # save all cpu registers
+	cli
+	pusha64
+	mov %rsp, %rbx
+	and $-16, %rsp
 	call isr0_handler
-	popa # restore cpu registers
-	sti # enable interrupts
-	iret # return from this interrupt
+	mov %rbx, %rsp
+	popa64
+	sti
+	iretq
 
 .global isr13
 .extern isr13_handler
 isr13:
 	cli
-	pusha
+	pusha64
+	mov %rsp, %rbx
+	and $-16, %rsp
 	call isr13_handler
-	popa
-	iret
+	mov %rbx, %rsp
+	popa64
+	addq $8, %rsp
+	sti
+	iretq
 
 .global isr14
 .extern isr14_handler
 isr14:
 	cli
-	pushl $14
-	pusha
+	pusha64
+	mov %rsp, %rbx
+	and $-16, %rsp
 	call isr14_handler
-	popa
-	add $8, %esp # clean up error code and int number
+	mov %rbx, %rsp
+	popa64
+	addq $8, %rsp
 	sti
-	iret
+	iretq
 
 .global isr32
-.extern irq0_handler # c scheduler
+.extern irq0_handler
 isr32:
 	cli
-	pusha
-	mov %esp, %eax
-	push %eax
+	pusha64
+	mov %rsp, %rdi
+	mov %rsp, %rbx
+	and $-16, %rsp
 	call irq0_handler
-	mov %eax, %esp
-	popa
+	mov %rax, %rsp
+	popa64
 	sti
-	iret
+	iretq
 
 .global isr33
 .extern isr33_handler
 isr33:
 	cli
-	pusha
+	pusha64
+	mov %rsp, %rbx
+	and $-16, %rsp
 	call isr33_handler
-	popa
+	mov %rbx, %rsp
+	popa64
 	sti
-	iret
+	iretq
 
 .global isr128
 .extern syscall_handler
 isr128:
 	cli
-	pushl $0
-	pushl $128
-	pusha
-	push %esp
+	pusha64
+	mov %rsp, %rdi
+	mov %rsp, %rbx
+	and $-16, %rsp
 	call syscall_handler
-	add $4, %esp
-	popa
-	add $8, %esp
+	mov %rbx, %rsp
+	popa64
 	sti
-	iret
-
+	iretq

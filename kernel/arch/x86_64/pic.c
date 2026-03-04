@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include <arch/i386/io.h>
+#include <arch/x86_64/io.h>
 
 #define PIC1_COMMAND 0x20
 #define PIC1_DATA    0x21

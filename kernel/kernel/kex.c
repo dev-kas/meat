@@ -6,7 +6,7 @@
 #include <kernel/vmm.h>
 #include <kernel/kex.h>
 
-extern void switch_to_user_mode(uint32_t entry_point);
+extern void switch_to_user_mode(uint64_t entry_point);
 
 void load_kex_and_run(void* file_data) {
 	kex_header* hdr = (kex_header*)file_data;
@@ -19,26 +19,26 @@ void load_kex_and_run(void* file_data) {
 	}
 
 	// parse commands
-	uint32_t current_offset = hdr->cmd_offset;
+	uint64_t current_offset = hdr->cmd_offset;
 
-	for (uint32_t i = 0; i < hdr->command_count; i++) {
-		kex_cmd* cmd = (kex_cmd*)((uint32_t)file_data + current_offset);
+	for (uint64_t i = 0; i < hdr->command_count; i++) {
+		kex_cmd* cmd = (kex_cmd*)((uint64_t)file_data + current_offset);
 
 		if (cmd->type == KEX_CMD_SEGMENT) {
 			kex_segment_cmd* seg = (kex_segment_cmd*)cmd;
 
-			for (uint32_t offset = 0; offset < seg->mem_size; offset += 4096) {
-				uint32_t phys = pmm_alloc_block();
+			for (uint64_t offset = 0; offset < seg->mem_size; offset += 4096) {
+				uint64_t phys = pmm_alloc_block();
 				vmm_map_page(phys, seg->rva + offset, 0x7);
 			}
 
 			// zero-initialize the memory
-			memset((void*)(uint32_t)seg->rva, 0, seg->mem_size);
+			memset((void*)(uint64_t)seg->rva, 0, seg->mem_size);
 
 			// copy the data from the KEX file into the RAM
 			if (seg->file_size > 0) {
-				memcpy((void*)(uint32_t)seg->rva,
-					(void*)((uint32_t)file_data + (uint32_t)seg->file_offset),
+				memcpy((void*)(uint64_t)seg->rva,
+					(void*)((uint64_t)file_data + (uint64_t)seg->file_offset),
 					seg->file_size);
 			}
 		} else if (cmd->type == KEX_CMD_INTEGRITY) {
@@ -49,8 +49,8 @@ void load_kex_and_run(void* file_data) {
 		current_offset += cmd->size;
 	}
 
-	uint32_t stack_phys = pmm_alloc_block();
+	uint64_t stack_phys = pmm_alloc_block();
 	vmm_map_page(stack_phys, 0x7FF000, 0x7);
 
-	switch_to_user_mode((uint32_t)hdr->entry_rva);
+	switch_to_user_mode((uint64_t)hdr->entry_rva);
 }

@@ -4,15 +4,15 @@
 #include <stdint.h>
 
 struct registers {
-	uint32_t edi, esi, ebp, esp, ebx, edx, ecx, eax; // pushed by pusha
-	uint32_t int_no, err_code; // interrupt number and error code
-	uint32_t eip, cs, eflags, useresp, ss; // pushed by processor automatically
+	uint64_t rdi, rsi, rbp, rbx, rdx, rcx, rax;
+	uint64_t r8, r9, r10, r11, r12, r13, r14, r15;
+	uint64_t rip, cs, rflags, rsp, ss;
 };
 
 typedef struct process {
 	int pid; // process id
-	uint32_t esp; // stack pointer (where the process was paused)
-	uint32_t* page_directory; // virtual memory context (CR3)
+	uint64_t rsp; // stack pointer (where the process was paused)
+	uint64_t* page_directory; // virtual memory context (CR3)
 	struct process* next;
 } process_t;
 

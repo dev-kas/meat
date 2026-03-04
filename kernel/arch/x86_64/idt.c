@@ -5,21 +5,21 @@
 #include <kernel/idt.h>
 #include <kernel/tty.h>
 
-#include <arch/i386/io.h>
+#include <arch/x86_64/io.h>
 
 struct idt_entry idt[256];
-struct idt_ptr idtp;
+// struct idt_ptr idtp;
 
-extern void idt_flush(uint32_t);
+extern void idt_flush(uint64_t);
 
-void idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags) {
+void idt_set_gate(uint8_t num, uint64_t base, uint16_t sel, uint8_t flags) {
 	idt[num].base_low = base & 0xFFFF;
-	idt[num].base_high = (base >> 16) & 0xFFFF;
+	idt[num].base_mid = (base >> 16) & 0xFFFF;
+	idt[num].base_high = (base >> 32) & 0xFFFFFFFF;
 	idt[num].sel = sel;
-	idt[num].always0 = 0;
-	// TODO: uncomment the OR below when we get to using user-mode
-	//   it sets the interrupt gate's privilege level to 3
-	idt[num].flags = flags; // | 0x60;
+	idt[num].ist = 0;
+	idt[num].flags = flags;
+	idt[num].reserved = 0;
 }
 
 // divide by zero
@@ -41,11 +41,11 @@ void isr13_handler(void) {
 // #PF (page fault)
 extern void isr14(void);
 void isr14_handler(void) {
-	uint32_t faulting_address;
+	uint64_t faulting_address;
 	asm volatile("mov %%cr2, %0" : "=r"(faulting_address));
 
-	printf("\n[KERNEL PANIC] PAGE FAULT!\n");
-	printf("Tried to access unmapped memory at: 0x%x\n", faulting_address);
+	// printf("\n[KERNEL PANIC] PAGE FAULT!\n");
+	// printf("Tried to access unmapped memory at: 0x%x\n", (unsigned int)faulting_address);
 
 	while(1) { asm volatile("cli; hlt"); }
 }
@@ -110,20 +110,21 @@ void isr33_handler(void) {
 extern void isr128(void);
 
 void idt_initialize(void) {
+	static struct idt_ptr idtp;
 	idtp.limit = (sizeof(struct idt_entry) * 256) - 1;
-	idtp.base = (uint32_t)&idt;
+	idtp.base = (uint64_t)&idt;
 
 	for (int i = 0; i < 256; i++) {
 		idt_set_gate(i, 0, 0, 0);
 	}
 
-	idt_set_gate(  0, (uint32_t)  isr0, 0x08, 0x8E); // divide by zero
-	idt_set_gate( 13, (uint32_t) isr13, 0x08, 0x8E); // GPF (general protection fault)
-	idt_set_gate( 14, (uint32_t) isr14, 0x08, 0x8E); // #PF (page fault)
-	idt_set_gate( 32, (uint32_t) isr32, 0x08, 0x8E); // IRQ0 - timer
-	idt_set_gate( 33, (uint32_t) isr33, 0x08, 0x8E); // IRQ1 - keyboard
-	idt_set_gate(128, (uint32_t)isr128, 0x08, 0xEE); // syscall
+	idt_set_gate(  0, (uint64_t)  isr0, 0x08, 0x8E); // divide by zero
+	idt_set_gate( 13, (uint64_t) isr13, 0x08, 0x8E); // GPF (general protection fault)
+	idt_set_gate( 14, (uint64_t) isr14, 0x08, 0x8E); // #PF (page fault)
+	idt_set_gate( 32, (uint64_t) isr32, 0x08, 0x8E); // IRQ0 - timer
+	idt_set_gate( 33, (uint64_t) isr33, 0x08, 0x8E); // IRQ1 - keyboard
+	idt_set_gate(128, (uint64_t)isr128, 0x08, 0xEE); // syscall
 
-	idt_flush((uint32_t)&idtp);
+	idt_flush((uint64_t)&idtp);
 }
 
