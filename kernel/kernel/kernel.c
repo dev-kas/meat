@@ -1,3 +1,9 @@
+#include <stdint.h>
+#include <stddef.h>
+#include <stdbool.h>
+#include <limine.h>
+
+/*
 #include <stdio.h>
 
 #include <kernel/tty.h>
@@ -14,7 +20,58 @@
 #include <kernel/kex.h>
 
 #include <string.h>
+*/
 
+// base revision = 3
+__attribute__((used, section(".requests")))
+static volatile LIMINE_BASE_REVISION(3);
+
+// request framebuffer
+__attribute__((used, section(".requests")))
+static volatile struct limine_framebuffer_request framebuffer_request = {
+	.id = LIMINE_FRAMEBUFFER_REQUEST,
+	.revision = 0
+};
+
+__attribute__((section(".text")))
+void _start(void) {
+	if (LIMINE_BASE_REVISION_SUPPORTED == false) {
+		for (;;) asm("hlt");
+	}
+
+	if (framebuffer_request.response == NULL ||
+		framebuffer_request.response->framebuffer_count < 1) {
+		for (;;) asm("hlt");
+	}
+
+	// get first framebuffer
+	struct limine_framebuffer *framebuffer = framebuffer_request.response->framebuffers[0];
+
+	// get properties of the screen
+	uint32_t width = framebuffer->width;
+	uint32_t height = framebuffer->height;
+	uint32_t pitch = framebuffer->pitch; // bytes per row
+	uint8_t* fb_ptr = framebuffer->address;
+
+	uint32_t x_center = width / 2;
+	uint32_t y_center = height / 2;
+
+	for (uint32_t y = y_center - 50; y < y_center + 50; y++) {
+		for (uint32_t x = x_center - 50; x < x_center + 50; x++) {
+			// calculate memory address of pixel (x, y)
+			// each pixel is 4 bytes (32bit color: blue, green, red, reserved)
+			uint32_t pixel_offset = (y * pitch) + (x * 4);
+
+			fb_ptr[pixel_offset + 0] = 255;
+			fb_ptr[pixel_offset + 1] = 0;
+			fb_ptr[pixel_offset + 2] = 0;
+		}
+	}
+
+	for (;;) asm volatile ("hlt");
+}
+
+/*
 extern uint32_t _kernel_end;
 
 void kernel_main(uint32_t magic, multiboot_info_t* mboot_ptr) {
@@ -99,3 +156,4 @@ void kernel_main(uint32_t magic, multiboot_info_t* mboot_ptr) {
 
 	while(1);
 }
+*/

@@ -3,18 +3,27 @@
 
 mkdir -p isodir
 mkdir -p isodir/boot
-mkdir -p isodir/boot/grub
 
 cp sysroot/boot/meat.kernel isodir/boot/meat.kernel
-cp sysroot/ramdisk.tar isodir/boot/ramdisk.tar
+# cp sysroot/ramdisk.tar isodir/boot/ramdisk.tar
 
-cat > isodir/boot/grub/grub.cfg << EOF
-set default=0
-set timeout=0
-set gfxpayload=keep
-menuentry "meat" {
-	multiboot /boot/meat.kernel
-	module /boot/ramdisk.tar
-}
+cat > isodir/limine.cfg << EOF
+TIMEOUT=0
+:MeatOS
+PROTOCOL=limine
+KERNEL_PATH=boot:///boot/meat.kernel
 EOF
-grub-mkrescue -o meat.iso isodir
+
+cp limine/limine-bios.sys limine/limine-bios-cd.bin limine/limine-uefi-cd.bin isodir/
+mkdir -p isodir/EFI/BOOT
+cp limine/BOOTX64.EFI isodir/EFI/BOOT/
+cp limine/BOOTIA32.EFI isodir/EFI/BOOT/
+
+xorriso -as mkisofs -b limine-bios-cd.bin \
+	-no-emul-boot -boot-load-size 4 -boot-info-table \
+	--efi-boot limine-uefi-cd.bin \
+	-efi-boot-part --efi-boot-image --protective-msdos-label \
+	isodir -o meat.iso
+
+./limine/limine bios-install meat.iso
+

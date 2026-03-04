@@ -13,7 +13,7 @@ EXEC_PREFIX?=$(PREFIX)
 BOOTDIR?=$(EXEC_PREFIX)/boot
 INCLUDEDIR?=$(PREFIX)/include
 
-CFLAGS:=$(CFLAGS) -ffreestanding -Wall -Wextra
+CFLAGS:=$(CFLAGS) -ffreestanding -Wall -Wextra -mcmodel=kernel
 CPPFLAGS:=$(CPPFLAGS) -D__is_kernel -Iinclude
 LDFLAGS:=$(LDFLAGS)
 LIBS:=$(LIBS) -nostdlib -lk -lgcc
@@ -30,12 +30,13 @@ LIBS:=$(LIBS) $(KERNEL_ARCH_LIBS)
 KERNEL_OBJS=\
 $(KERNEL_ARCH_OBJS) \
 kernel/kernel.o \
-kernel/kheap.o \
-kernel/pmm.o \
-kernel/fs.o \
-kernel/process.o \
-kernel/syscall.o \
-kernel/kex.o \
+
+# kernel/kheap.o \
+# kernel/pmm.o \
+# kernel/fs.o \
+# kernel/process.o \
+# kernel/syscall.o \
+# kernel/kex.o
 
 OBJS=\
 $(ARCHDIR)/crti.o \
@@ -46,12 +47,12 @@ $(ARCHDIR)/crtn.o \
 
 LINK_LIST=\
 $(LDFLAGS) \
-$(ARCHDIR)/crti.o \
-$(ARCHDIR)/crtbegin.o \
 $(KERNEL_OBJS) \
 $(LIBS) \
-$(ARCHDIR)/crtend.o \
-$(ARCHDIR)/crtn.o \
+# $(ARCHDIR)/crti.o \
+# $(ARCHDIR)/crtbegin.o \
+# $(ARCHDIR)/crtend.o \
+# $(ARCHDIR)/crtn.o \
 
 .PHONY: all clean install install-headers install-kernel
 .SUFFIXES: .o .c .s
@@ -60,15 +61,14 @@ all: meat.kernel
 
 meat.kernel: $(OBJS) $(ARCHDIR)/linker.ld
 	$(CC) -T $(ARCHDIR)/linker.ld -o $@ $(CFLAGS) $(LINK_LIST)
-	grub-file --is-x86-multiboot meat.kernel
 
 $(ARCHDIR)/crtbegin.o $(ARCHDIR)/crtend.o:
 	OBJ=`$(CC) $(CFLAGS) $(LDFLAGS) -print-file-name=$(@F)` && cp "$$OBJ" $@
 
-.c.o:
+%.o: %.c
 	$(CC) -MD -c $< -o $@ -std=gnu11 $(CFLAGS) $(CPPFLAGS)
 
-.S.o:
+%.o: %.S
 	$(CC) -MD -c $< -o $@ $(CFLAGS) $(CPPFLAGS)
 
 clean:
